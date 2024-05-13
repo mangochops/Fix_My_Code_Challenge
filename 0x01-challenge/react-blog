@@ -1,0 +1,63 @@
+/**
+ * Express configurations.
+ */
+
+const express = require('express');
+const React = require('react/addons');
+const Iso = require('iso');
+const session = require('express-session');
+const path = require('path');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const Router = require('react-router');
+
+// Import routes, alt, and config
+const posts = require('./routes/post.routes');
+const routes = require('./src/routes.jsx');
+const alt = require('./src/alt');
+const config = require('./config.js');
+
+const app = express();
+
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({ secret: 'copy cat', resave: false, saveUninitialized: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(cookieParser());
+
+// Define Routes here
+app.use('/', posts);
+
+app.use((req, res) => {
+    const data = res.locals.data || {};
+    alt.bootstrap(JSON.stringify(data));
+    const metaDescription = res.locals.metaDescription || '';
+    const iso = new Iso();
+
+    Router.run(routes, req.url, (Handler) => {
+        const content = React.renderToString(React.createElement(Handler));
+        iso.add(content, alt.flush());
+        res.render('index', {
+            content: iso.render(),
+            pageTitle: config.pageTitle,
+            metaDescription: metaDescription
+        });
+    });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+    const status = err.status || 500;
+    console.error(err);
+    res.status(status).sendFile(path.resolve(__dirname, 'views/error', `${status}.html`));
+});
+
+// Start the server
+const server = app.listen(config.port, () => {
+    console.log('Listening on ' + config.baseUrl);
+});
+
+module.exports = server;
