@@ -1,0 +1,50 @@
+# config/routes.rb
+Rails.application.routes.draw do
+  # Other routes...
+  resources :posts, only: [:index, :show, :edit, :update]
+end
+
+# app/models/post.rb
+class Post < ApplicationRecord
+  validates :title, presence: true
+  validates :content, presence: true
+
+  # Add the online boolean field with default value true
+  attribute :online, :boolean, default: true
+end
+
+# app/controllers/posts_controller.rb
+class PostsController < ApplicationController
+  # Other controller methods...
+
+  def post_params
+    params.require(:post).permit(:title, :content, :online)
+  end
+end
+
+<%= form_with(model: @post, local: true) do |form| %>
+  <%= form.label :title %>
+  <%= form.text_field :title %>
+
+  <%= form.label :content %>
+  <%= form.text_area :content %>
+
+  <%= form.label :online %>
+  <%= form.check_box :online %>
+
+  <%= form.submit %>
+<% end %>
+# app/controllers/posts_controller.rb
+class PostsController < ApplicationController
+  # Other controller methods...
+
+  def update
+    @post = Post.find(params[:id])
+    if @post.update(post_params)
+      redirect_to @post, notice: 'Post was successfully updated.'
+    else
+      render :edit
+    end
+  end
+end
+
